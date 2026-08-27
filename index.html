@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Sparkle Brush Timer 🦷</title>
+<meta name="description" content="A fun cartoon 2-minute tooth brushing timer for kids, split into 4 mouth zones.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A6%B7%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky-top:#8ed6ff;
+    --sky-bottom:#c8f4ff;
+    --sun:#ffd93d;
+    --ink:#3a2b4d;
+    --panel:#ffffff;
+    --panel-shadow:rgba(58,43,77,.18);
+    --zone-tl:#ffd93d;
+    --zone-tr:#6bcb77;
+    --zone-bl:#4d96ff;
+    --zone-br:#ff6f91;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:'Baloo 2', 'Comic Sans MS', 'Trebuchet MS', sans-serif;
+    background:linear-gradient(180deg,var(--sky-top) 0%, var(--sky-bottom) 55%, #eafff0 100%);
+    color:var(--ink);
+    min-height:100%;
+    display:flex;
+    justify-content:center;
+    overflow-x:hidden;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;
+  }
+  .app{
+    width:100%;
+    max-width:560px;
+    padding:18px 16px 40px;
+    position:relative;
+    z-index:2;
+  }
+
+  /* ---------- decorative sky ---------- */
+  .sun{
+    position:fixed; top:-40px; right:-40px; width:160px;height:160px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, #fff2b0, var(--sun) 60%, #ffbe3d 100%);
+    box-shadow:0 0 60px 10px rgba(255,217,61,.6);
+    z-index:0;
+  }
+  .cloud{
+    position:fixed; background:#fff; border-radius:50px; opacity:.9; z-index:0;
+    box-shadow:0 8px 0 -4px #fff;
+  }
+  .cloud::before, .cloud::after{content:"";position:absolute;background:#fff;border-radius:50%;}
+  .cloud1{width:90px;height:34px;top:60px;left:-20px;}
+  .cloud1::before{width:50px;height:50px;top:-24px;left:10px;}
+  .cloud1::after{width:36px;height:36px;top:-16px;left:50px;}
+  .cloud2{width:70px;height:26px;top:140px;right:20px;}
+  .cloud2::before{width:38px;height:38px;top:-18px;left:8px;}
+  .cloud2::after{width:26px;height:26px;top:-10px;left:36px;}
+
+  h1{
+    text-align:center;
+    font-size:1.7rem;
+    font-weight:800;
+    margin:4px 0 2px;
+    color:#2c6e91;
+    text-shadow:0 2px 0 #fff;
+  }
+  .subtitle{
+    text-align:center;
+    font-size:.95rem;
+    font-weight:500;
+    color:#4a6a7a;
+    margin:0 0 14px;
+  }
+
+  .panel{
+    background:var(--panel);
+    border-radius:28px;
+    box-shadow:0 14px 0 -4px var(--panel-shadow), 0 20px 30px -10px var(--panel-shadow);
+    padding:20px 18px 24px;
+    position:relative;
+  }
+
+  /* ---------- buttons ---------- */
+  .btn{
+    font-family:inherit;
+    font-weight:700;
+    font-size:1.1rem;
+    border:none;
+    border-radius:20px;
+    padding:16px 20px;
+    cursor:pointer;
+    color:#fff;
+    box-shadow:0 6px 0 rgba(0,0,0,.18);
+    transition:transform .08s ease, box-shadow .08s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .btn:active{ transform:translateY(4px); box-shadow:0 2px 0 rgba(0,0,0,.18); }
+  .btn-primary{ background:linear-gradient(180deg,#6bcb77,#3fae52); }
+  .btn-secondary{ background:linear-gradient(180deg,#4d96ff,#2b6fe0); }
+  .btn-quiet{ background:linear-gradient(180deg,#ffb84d,#f08a1f); }
+  .btn-block{ width:100%; display:block; }
+  .btn-row{ display:flex; gap:10px; margin-top:16px; }
+  .btn-row .btn{ flex:1; }
+  .icon-btn{
+    width:44px;height:44px;border-radius:50%;border:none;
+    background:#eef6ff; color:#2c6e91; font-size:1.3rem;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 0 rgba(0,0,0,.08);
+    cursor:pointer;
+  }
+  .top-bar{ display:flex; justify-content:flex-end; margin-bottom:4px; }
+
+  /* ================= START SCREEN ================= */
+  #start-screen{ text-align:center; }
+  .mascot-wrap{ display:flex; justify-content:center; margin:6px 0 10px; }
+  .mascot{ width:190px; height:190px; animation:bob 2.4s ease-in-out infinite; }
+  @keyframes bob{ 0%,100%{transform:translateY(0) rotate(-2deg);} 50%{transform:translateY(-10px) rotate(2deg);} }
+  #start-screen p{ font-size:1.05rem; line-height:1.5; margin:0 0 16px; }
+
+  /* ================= TIMER SCREEN ================= */
+  .zone-label{
+    text-align:center;
+    font-size:1.3rem;
+    font-weight:800;
+    margin:2px 0 14px;
+    padding:10px 14px;
+    border-radius:16px;
+    color:#fff;
+    transition:background .4s ease;
+  }
+  .stage{
+    position:relative;
+    width:100%;
+    max-width:340px;
+    margin:0 auto 18px;
+  }
+  .toothbrush{
+    position:absolute;
+    width:74px;
+    left:50%;
+    top:20%;
+    transform-origin:center;
+    transition:top .5s ease, left .5s ease;
+    filter:drop-shadow(0 6px 4px rgba(0,0,0,.2));
+    z-index:5;
+    animation:scrub .55s ease-in-out infinite;
+  }
+  @keyframes scrub{
+    0%,100%{ transform:translateX(calc(-50% - 22px)) rotate(-14deg); }
+    50%{ transform:translateX(calc(-50% + 22px)) rotate(14deg); }
+  }
+  .tooth-rect{ transition: fill .35s ease, filter .35s ease; }
+  .tooth-rect.active{ filter:drop-shadow(0 0 6px rgba(255,255,255,.9)); }
+  .sparkle{
+    opacity:0;
+    transform-origin:center;
+  }
+  .sparkle.show{ animation:twinkle 1s ease-in-out infinite; }
+  @keyframes twinkle{
+    0%,100%{ opacity:0; transform:scale(.3) rotate(0deg);}
+    50%{ opacity:1; transform:scale(1) rotate(25deg);}
+  }
+
+  .progress-wrap{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    margin-top:6px;
+  }
+  .ring-box{ position:relative; width:96px; height:96px; flex:0 0 auto; }
+  .ring-box svg{ transform:rotate(-90deg); }
+  .ring-box .secs{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:1.7rem; font-weight:800; color:var(--ink);
+  }
+  .total-col{ flex:1; }
+  .total-label{ font-size:.85rem; font-weight:700; color:#6a7f8a; margin-bottom:6px; }
+  .total-track{
+    background:#eef2f5; border-radius:14px; height:20px; overflow:hidden;
+    box-shadow:inset 0 2px 4px rgba(0,0,0,.08);
+  }
+  .total-fill{
+    height:100%; width:0%;
+    background:linear-gradient(90deg,#ffd93d,#6bcb77,#4d96ff,#ff6f91);
+    border-radius:14px;
+    transition:width .3s linear;
+  }
+  .zone-dots{ display:flex; gap:6px; margin-top:8px; }
+  .zone-dots span{
+    flex:1; height:8px; border-radius:6px; background:#e5eaee;
+  }
+  .zone-dots span.done{ background:#9be39c; }
+  .zone-dots span.current{ background:#ffd93d; }
+
+  /* ================= DONE SCREEN ================= */
+  #done-screen{ text-align:center; }
+  .trophy{ width:170px; margin:0 auto 6px; display:block; animation:pop .6s ease; }
+  @keyframes pop{ 0%{transform:scale(.4) rotate(-10deg); opacity:0;} 70%{transform:scale(1.08) rotate(4deg); opacity:1;} 100%{transform:scale(1) rotate(0);} }
+  #done-screen h2{ font-size:1.6rem; margin:6px 0; color:#2c6e91; }
+  #done-screen p{ font-size:1.05rem; margin:0 0 18px; }
+
+  .confetti-piece{
+    position:fixed; top:-20px; width:10px; height:16px; z-index:50;
+    animation:fall linear forwards;
+  }
+  @keyframes fall{
+    to{ transform:translateY(110vh) rotate(540deg); }
+  }
+
+  [hidden]{ display:none !important; }
+
+  footer{
+    text-align:center; font-size:.75rem; color:#7d93a0; margin-top:18px;
+  }
+</style>
+</head>
+<body>
+
+<div class="sun"></div>
+<div class="cloud cloud1"></div>
+<div class="cloud cloud2"></div>
+
+<div class="app">
+  <h1>Sparkle Brush Timer 🦷✨</h1>
+  <p class="subtitle">2 minutes of brushing — 30 seconds per zone!</p>
+
+  <div class="panel">
+    <div class="top-bar">
+      <button id="muteBtn" class="icon-btn" aria-label="Toggle sound" title="Toggle sound">🔊</button>
+    </div>
+
+    <!-- START SCREEN -->
+    <div id="start-screen">
+      <div class="mascot-wrap">
+        <svg class="mascot" viewBox="0 0 200 200" role="img" aria-label="Happy tooth mascot">
+          <ellipse cx="100" cy="185" rx="55" ry="10" fill="#000" opacity=".08"/>
+          <path d="M100 15 C150 15 168 55 165 95 C163 122 150 140 148 160 C146 178 130 185 120 168 C114 158 108 158 100 158 C92 158 86 158 80 168 C70 185 54 178 52 160 C50 140 37 122 35 95 C32 55 50 15 100 15 Z" fill="#ffffff" stroke="#dfe9ee" stroke-width="3"/>
+          <circle cx="76" cy="90" r="11" fill="#2c2c2c"/>
+          <circle cx="124" cy="90" r="11" fill="#2c2c2c"/>
+          <circle cx="80" cy="86" r="3.5" fill="#fff"/>
+          <circle cx="128" cy="86" r="3.5" fill="#fff"/>
+          <ellipse cx="62" cy="112" rx="10" ry="6" fill="#ffb3c1" opacity=".8"/>
+          <ellipse cx="138" cy="112" rx="10" ry="6" fill="#ffb3c1" opacity=".8"/>
+          <path d="M75 122 Q100 145 125 122" stroke="#2c2c2c" stroke-width="5" fill="none" stroke-linecap="round"/>
+          <g>
+            <rect x="30" y="35" width="26" height="8" rx="4" fill="#4d96ff" transform="rotate(-20 30 35)"/>
+            <rect x="144" y="35" width="26" height="8" rx="4" fill="#4d96ff" transform="rotate(20 170 35)"/>
+          </g>
+        </svg>
+      </div>
+      <p>Hi! I'm <strong>Sparkle</strong>. Let's brush every part of your smile — top, bottom, left and right!</p>
+      <button id="startBtn" class="btn btn-primary btn-block">▶️ Start Brushing!</button>
+    </div>
+
+    <!-- TIMER SCREEN -->
+    <div id="timer-screen" hidden>
+      <div id="zoneLabel" class="zone-label">Get Ready!</div>
+
+      <div class="stage">
+        <svg viewBox="0 0 300 300" width="100%" role="img" aria-label="Cartoon mouth with four brushing zones">
+          <!-- face -->
+          <circle cx="150" cy="150" r="140" fill="#ffe9b8"/>
+          <circle cx="95" cy="120" r="16" fill="#2c2c2c"/>
+          <circle cx="205" cy="120" r="16" fill="#2c2c2c"/>
+          <circle cx="101" cy="113" r="5" fill="#fff"/>
+          <circle cx="211" cy="113" r="5" fill="#fff"/>
+          <ellipse cx="70" cy="160" rx="14" ry="9" fill="#ff9eb0" opacity=".7"/>
+          <ellipse cx="230" cy="160" rx="14" ry="9" fill="#ff9eb0" opacity=".7"/>
+
+          <!-- mouth opening -->
+          <rect x="70" y="150" width="160" height="110" rx="45" fill="#7a2a2a"/>
+
+          <!-- upper gum -->
+          <path d="M78 158 Q150 138 222 158 L222 190 Q150 175 78 190 Z" fill="#ffb3c1"/>
+          <!-- lower gum -->
+          <path d="M78 252 Q150 268 222 252 L222 222 Q150 235 78 222 Z" fill="#ffb3c1"/>
+
+          <!-- UPPER LEFT teeth (3) -->
+          <g id="grp-upper-left">
+            <rect class="tooth-rect" x="82" y="160" width="20" height="26" rx="6" fill="#ffffff"/>
+            <rect class="tooth-rect" x="105" y="158" width="20" height="28" rx="6" fill="#ffffff"/>
+            <rect class="tooth-rect" x="128" y="157" width="20" height="29" rx="6" fill="#ffffff"/>
+          </g>
+          <!-- UPPER RIGHT teeth (3) -->
+          <g id="grp-upper-right">
+            <rect class="tooth-rect" x="152" y="157" width="20" height="29" rx="6" fill="#ffffff"/>
+            <rect class="tooth-rect" x="175" y="158" width="20" height="28" rx="6" fill="#ffffff"/>
+            <rect class="tooth-rect" x="198" y="160" width="20" height="26" rx="6" fill="#ffffff"/>
+          </g>
+
+          <!-- tongue -->
+          <ellipse cx="150" cy="222" rx="46" ry="18" fill="#e8676f"/>
+
+          <!-- LOWER LEFT teeth (3) -->
+          <g id="grp-lower-left">
+            <rect class="tooth-rect" x="82" y="222" width="20" height="24" rx="6" fill="#ffffff"/>
+            <rect class="tooth-rect" x="105" y="224" width="20" height="24" rx="6" fill="#ffffff"/>
+            <rect class="tooth-rect" x="128" y="225" width="20" height="24" rx="6" fill="#ffffff"/>
+          </g>
+          <!-- LOWER RIGHT teeth (3) -->
+          <g id="grp-lower-right">
+            <rect class="tooth-rect" x="152" y="225" width="20" height="24" rx="6" fill="#ffffff"/>
+            <rect class="tooth-rect" x="175" y="224" width="20" height="24" rx="6" fill="#ffffff"/>
+            <rect class="tooth-rect" x="198" y="222" width="20" height="24" rx="6" fill="#ffffff"/>
+          </g>
+
+          <!-- sparkle stars, one per zone -->
+          <text id="spark-upper-left" class="sparkle" x="95" y="150" font-size="26">✨</text>
+          <text id="spark-upper-right" class="sparkle" x="190" y="150" font-size="26">✨</text>
+          <text id="spark-lower-left" class="sparkle" x="95" y="270" font-size="26">✨</text>
+          <text id="spark-lower-right" class="sparkle" x="190" y="270" font-size="26">✨</text>
+        </svg>
+
+        <svg id="brush" class="toothbrush" viewBox="0 0 60 100">
+          <rect x="22" y="35" width="16" height="60" rx="8" fill="#4d96ff"/>
+          <rect x="22" y="35" width="16" height="60" rx="8" fill="url(#handleShine)" opacity=".5"/>
+          <rect x="8" y="6" width="44" height="30" rx="10" fill="#ffffff" stroke="#d8e3ea" stroke-width="2"/>
+          <g stroke="#8fc7ff" stroke-width="3" stroke-linecap="round">
+            <line x1="14" y1="10" x2="14" y2="30"/>
+            <line x1="22" y1="8" x2="22" y2="32"/>
+            <line x1="30" y1="7" x2="30" y2="33"/>
+            <line x1="38" y1="8" x2="38" y2="32"/>
+            <line x1="46" y1="10" x2="46" y2="30"/>
+          </g>
+          <defs>
+            <linearGradient id="handleShine" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#fff" stop-opacity=".6"/>
+              <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="ring-box">
+          <svg width="96" height="96" viewBox="0 0 96 96">
+            <circle cx="48" cy="48" r="42" stroke="#eef2f5" stroke-width="10" fill="none"/>
+            <circle id="ring" cx="48" cy="48" r="42" stroke="#4d96ff" stroke-width="10" fill="none"
+                    stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="0"/>
+          </svg>
+          <div class="secs" id="secsLeft">30</div>
+        </div>
+        <div class="total-col">
+          <div class="total-label">Whole Mouth Progress</div>
+          <div class="total-track"><div class="total-fill" id="totalFill"></div></div>
+          <div class="zone-dots">
+            <span id="dot-0"></span><span id="dot-1"></span><span id="dot-2"></span><span id="dot-3"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button id="pauseBtn" class="btn btn-secondary">⏸️ Pause</button>
+        <button id="resetBtn" class="btn btn-quiet">🔄 Reset</button>
+      </div>
+    </div>
+
+    <!-- DONE SCREEN -->
+    <div id="done-screen" hidden>
+      <svg class="trophy" viewBox="0 0 200 200" role="img" aria-label="Sparkle mascot celebrating">
+        <path d="M100 15 C150 15 168 55 165 95 C163 122 150 140 148 160 C146 178 130 185 120 168 C114 158 108 158 100 158 C92 158 86 158 80 168 C70 185 54 178 52 160 C50 140 37 122 35 95 C32 55 50 15 100 15 Z" fill="#ffffff" stroke="#dfe9ee" stroke-width="3"/>
+        <path d="M60 60 L72 78 M140 60 L128 78" stroke="#2c2c2c" stroke-width="6" stroke-linecap="round"/>
+        <ellipse cx="62" cy="112" rx="10" ry="6" fill="#ffb3c1"/>
+        <ellipse cx="138" cy="112" rx="10" ry="6" fill="#ffb3c1"/>
+        <path d="M72 118 Q100 155 128 118" stroke="#2c2c2c" stroke-width="6" fill="none" stroke-linecap="round"/>
+        <path d="M75 130 Q100 145 125 130" fill="#fff"/>
+      </svg>
+      <h2>All Done — You're Sparkling! 🌟</h2>
+      <p>Great job brushing every corner of your smile!</p>
+      <button id="againBtn" class="btn btn-primary btn-block">🪥 Brush Again</button>
+    </div>
+  </div>
+
+  <footer>Made with 💛 for happy, healthy smiles.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var ZONES = [
+    { key:"upper-left",  label:"Top Left 🙂",     color:"#ffd93d", groupId:"grp-upper-left",
+      sparkId:"spark-upper-left",  brushTop:"50%",  brushLeft:"38.3%" },
+    { key:"upper-right", label:"Top Right 🙂",    color:"#6bcb77", groupId:"grp-upper-right",
+      sparkId:"spark-upper-right", brushTop:"50%",  brushLeft:"61.7%" },
+    { key:"lower-left",  label:"Bottom Left 😁",  color:"#4d96ff", groupId:"grp-lower-left",
+      sparkId:"spark-lower-left",  brushTop:"71%",  brushLeft:"38.3%" },
+    { key:"lower-right", label:"Bottom Right 😁", color:"#ff6f91", groupId:"grp-lower-right",
+      sparkId:"spark-lower-right", brushTop:"71%",  brushLeft:"61.7%" }
+  ];
+  var ZONE_SECONDS = 30;
+  var TOTAL_SECONDS = ZONE_SECONDS * ZONES.length;
+  var RING_CIRC = 2 * Math.PI * 42;
+
+  var startScreen = document.getElementById('start-screen');
+  var timerScreen  = document.getElementById('timer-screen');
+  var doneScreen   = document.getElementById('done-screen');
+  var startBtn = document.getElementById('startBtn');
+  var pauseBtn = document.getElementById('pauseBtn');
+  var resetBtn = document.getElementById('resetBtn');
+  var againBtn = document.getElementById('againBtn');
+  var muteBtn  = document.getElementById('muteBtn');
+  var zoneLabel = document.getElementById('zoneLabel');
+  var ring = document.getElementById('ring');
+  var secsLeftEl = document.getElementById('secsLeft');
+  var totalFill = document.getElementById('totalFill');
+  var brush = document.getElementById('brush');
+
+  var zoneIndex = 0;
+  var elapsedInZone = 0;   // seconds
+  var totalElapsed = 0;    // seconds
+  var running = false;
+  var tickTimer = null;
+  var muted = false;
+  var startTs = null;      // ms, wall clock anchor for drift-free timing
+  var baseElapsedMs = 0;   // ms accumulated before current run segment
+
+  var audioCtx = null;
+  function getAudio(){
+    if(!audioCtx){
+      try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){ audioCtx = null; }
+    }
+    return audioCtx;
+  }
+  function playTone(freq, dur, type){
+    if(muted) return;
+    var ctx = getAudio();
+    if(!ctx) return;
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + dur + 0.02);
+  }
+  function playChime(){ playTone(660,0.18,'triangle'); setTimeout(function(){ playTone(880,0.22,'triangle'); }, 140); }
+  function playTick(){ playTone(440,0.08,'square'); }
+  function playFanfare(){
+    [523,659,784,1046].forEach(function(f,i){
+      setTimeout(function(){ playTone(f,0.28,'triangle'); }, i*150);
+    });
+  }
+
+  muteBtn.addEventListener('click', function(){
+    muted = !muted;
+    muteBtn.textContent = muted ? '🔇' : '🔊';
+  });
+
+  function clearAllHighlights(){
+    ZONES.forEach(function(z){
+      var g = document.getElementById(z.groupId);
+      g.querySelectorAll('.tooth-rect').forEach(function(r){
+        r.classList.remove('active');
+        r.setAttribute('fill', '#ffffff');
+      });
+      document.getElementById(z.sparkId).classList.remove('show');
+    });
+  }
+
+  function applyZoneVisuals(idx){
+    clearAllHighlights();
+    var z = ZONES[idx];
+    var g = document.getElementById(z.groupId);
+    g.querySelectorAll('.tooth-rect').forEach(function(r){
+      r.classList.add('active');
+      r.setAttribute('fill', z.color);
+    });
+    document.getElementById(z.sparkId).classList.add('show');
+
+    zoneLabel.textContent = "🪥 Brush: " + z.label;
+    zoneLabel.style.background = z.color;
+    ring.setAttribute('stroke', z.color);
+
+    brush.style.top = z.brushTop;
+    brush.style.left = z.brushLeft;
+
+    for(var i=0;i<ZONES.length;i++){
+      var dot = document.getElementById('dot-'+i);
+      dot.classList.remove('current','done');
+      if(i < idx) dot.classList.add('done');
+      else if(i === idx) dot.classList.add('current');
+    }
+  }
+
+  function render(){
+    var zoneRemaining = Math.max(0, ZONE_SECONDS - elapsedInZone);
+    secsLeftEl.textContent = Math.ceil(zoneRemaining);
+    var frac = zoneRemaining / ZONE_SECONDS;
+    ring.setAttribute('stroke-dasharray', RING_CIRC);
+    ring.setAttribute('stroke-dashoffset', RING_CIRC * (1 - frac));
+
+    var totalFrac = Math.min(1, totalElapsed / TOTAL_SECONDS);
+    totalFill.style.width = (totalFrac*100) + '%';
+  }
+
+  function resetState(){
+    zoneIndex = 0;
+    elapsedInZone = 0;
+    totalElapsed = 0;
+    baseElapsedMs = 0;
+    running = false;
+    startTs = null;
+    if(tickTimer){ clearInterval(tickTimer); tickTimer = null; }
+    applyZoneVisuals(0);
+    render();
+  }
+
+  function tick(){
+    var nowMs = Date.now();
+    var elapsedMs = baseElapsedMs + (nowMs - startTs);
+    var elapsedSec = elapsedMs / 1000;
+
+    totalElapsed = Math.min(TOTAL_SECONDS, elapsedSec);
+    var newZoneIndex = Math.min(ZONES.length - 1, Math.floor(totalElapsed / ZONE_SECONDS));
+    elapsedInZone = totalElapsed - newZoneIndex * ZONE_SECONDS;
+
+    if(newZoneIndex !== zoneIndex){
+      zoneIndex = newZoneIndex;
+      applyZoneVisuals(zoneIndex);
+      playChime();
+    }
+
+    var remaining = ZONE_SECONDS - elapsedInZone;
+    if(remaining <= 3.05 && remaining > 2.9) playTick();
+    if(remaining <= 2.05 && remaining > 1.9) playTick();
+    if(remaining <= 1.05 && remaining > 0.9) playTick();
+
+    render();
+
+    if(totalElapsed >= TOTAL_SECONDS){
+      finish();
+    }
+  }
+
+  function start(){
+    if(running) return;
+    running = true;
+    startTs = Date.now();
+    if(tickTimer) clearInterval(tickTimer);
+    tickTimer = setInterval(tick, 100);
+    pauseBtn.textContent = '⏸️ Pause';
+    if(!getAudio()){ /* create on user gesture for mobile */ }
+    else { getAudio().resume && getAudio().resume(); }
+  }
+
+  function pause(){
+    if(!running) return;
+    running = false;
+    baseElapsedMs = baseElapsedMs + (Date.now() - startTs);
+    clearInterval(tickTimer);
+    tickTimer = null;
+    pauseBtn.textContent = '▶️ Resume';
+  }
+
+  function togglePause(){
+    if(running) pause(); else start();
+  }
+
+  function finish(){
+    running = false;
+    clearInterval(tickTimer);
+    tickTimer = null;
+    totalElapsed = TOTAL_SECONDS;
+    render();
+    playFanfare();
+    timerScreen.hidden = true;
+    doneScreen.hidden = false;
+    launchConfetti();
+  }
+
+  function goToTimerScreen(){
+    startScreen.hidden = true;
+    doneScreen.hidden = true;
+    timerScreen.hidden = false;
+    resetState();
+    start();
+  }
+
+  startBtn.addEventListener('click', goToTimerScreen);
+  againBtn.addEventListener('click', goToTimerScreen);
+  pauseBtn.addEventListener('click', togglePause);
+  resetBtn.addEventListener('click', function(){
+    pause();
+    resetState();
+  });
+
+  function launchConfetti(){
+    var colors = ['#ffd93d','#6bcb77','#4d96ff','#ff6f91','#ffffff'];
+    for(var i=0;i<60;i++){
+      (function(){
+        var el = document.createElement('div');
+        el.className = 'confetti-piece';
+        el.style.left = (Math.random()*100) + 'vw';
+        el.style.background = colors[Math.floor(Math.random()*colors.length)];
+        el.style.borderRadius = Math.random() > .5 ? '50%' : '2px';
+        var dur = 2.4 + Math.random()*1.6;
+        el.style.animationDuration = dur + 's';
+        el.style.animationDelay = (Math.random()*0.4) + 's';
+        document.body.appendChild(el);
+        setTimeout(function(){ el.remove(); }, (dur+0.5)*1000);
+      })();
+    }
+  }
+
+  // initial paint
+  applyZoneVisuals(0);
+  zoneLabel.textContent = 'Get Ready!';
+  zoneLabel.style.background = '#9bb6c4';
+  render();
+})();
+</script>
+</body>
+</html>
